@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
   <title>Proyectos — Monitor HCDN</title>
-  <meta name="description" content="Explorar todos los proyectos parlamentarios de la Cámara de Diputados 2025. Filtrar por tipo, comisión, bloque y buscar por título o autor.">
+  <meta name="description" content="Explorar todos los proyectos parlamentarios de la Cámara de Diputados. Filtrar por tipo, comisión, bloque y buscar por título o autor.">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -19,7 +19,7 @@
   <main class="main">
     <div class="page-header">
       <h1>Proyectos Parlamentarios</h1>
-      <p>Todos los proyectos con estado parlamentario — Año 2025</p>
+      <p>Todos los proyectos con estado parlamentario — <span id="header-period-label">Período Seleccionado</span></p>
     </div>
 
     <div class="filters-bar" id="filters">
@@ -50,10 +50,6 @@
   <script src="js/data-loader.js"></script>
   <script src="js/app.js"></script>
   <script>
-    document.getElementById('nav-container').innerHTML = App.navHTML();
-    document.getElementById('footer-container').innerHTML = App.footerHTML();
-    App.initNav();
-
     const PAGE_SIZE = 50;
     let allProyectos = [];
     let filtered = [];
@@ -174,6 +170,12 @@
 
     // Init
     (async () => {
+      // Update Header Label
+      const activePeriodInfo = DataLoader.periods?.find(p => p.year === DataLoader.getActivePeriod());
+      if (activePeriodInfo) {
+        document.getElementById('header-period-label').innerText = activePeriodInfo.label;
+      }
+
       await initFilters();
       allProyectos = await DataLoader.loadProyectos();
       if (!allProyectos) { allProyectos = []; return; }

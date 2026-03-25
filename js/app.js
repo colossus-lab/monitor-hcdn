@@ -59,6 +59,16 @@ const App = {
     return params.get(name);
   },
 
+  // Global Init
+  async initGlobals() {
+    await DataLoader.init();
+    const nav = document.getElementById('nav-container');
+    const ftr = document.getElementById('footer-container');
+    if (nav) nav.innerHTML = this.navHTML();
+    if (ftr) ftr.innerHTML = this.footerHTML();
+    this.initNav();
+  },
+
   // Nav - highlight active link
   initNav() {
     const page = window.location.pathname.split('/').pop() || 'index.html';
@@ -74,6 +84,24 @@ const App = {
     const links = document.querySelector('.nav-links');
     if (toggle && links) {
       toggle.addEventListener('click', () => links.classList.toggle('open'));
+    }
+
+    // Period selector logic
+    const periodSelect = document.getElementById('period-selector');
+    if (periodSelect && DataLoader.periods) {
+      DataLoader.periods.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.year;
+        opt.textContent = p.year; // e.g. "2026"
+        if (p.year === DataLoader.getActivePeriod()) opt.selected = true;
+        periodSelect.appendChild(opt);
+      });
+      
+      periodSelect.addEventListener('change', (e) => {
+        if (DataLoader.setActivePeriod(e.target.value)) {
+          window.location.reload();
+        }
+      });
     }
 
     // Update alert badge count
@@ -171,16 +199,19 @@ const App = {
           <li><a href="comisiones.html">Comisiones</a></li>
           <li><a href="bloques.html">Bloques</a></li>
           <li><a href="alertas.html">Alertas${alertBadge ? '<span class="nav-alert-badge" style="display:none">0</span>' : ''}</a></li>
+          <li class="nav-selector"><select id="period-selector" class="period-select" aria-label="Seleccionar período"></select></li>
         </ul>
       </div>
     </nav>`;
   },
 
   footerHTML() {
+    const active = DataLoader.periods?.find(p => p.year === DataLoader.getActivePeriod());
+    const label = active ? active.label : 'Período 143 · Año 2025';
     return `
     <footer class="footer">
       <p style="font-size:14px;font-weight:600;margin-bottom:6px">🏛️ Monitor HCDN · Congreso de la Nación Argentina</p>
-      <p>Datos abiertos de <a href="https://datos.hcdn.gob.ar" target="_blank">datos.hcdn.gob.ar</a> · Período 143 · Año 2025</p>
+      <p>Datos abiertos de <a href="https://datos.hcdn.gob.ar" target="_blank">datos.hcdn.gob.ar</a> · ${label}</p>
       <p style="margin-top:4px;opacity:0.5">Laboratorio Colossus</p>
     </footer>`;
   }

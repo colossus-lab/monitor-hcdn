@@ -217,6 +217,45 @@ a:hover { color: var(--hcdn-accent-hover); text-decoration: underline; }
   background: rgba(255,255,255,0.15);
 }
 
+.nav-selector {
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.period-select {
+  appearance: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-on-dark);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 4px 28px 4px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.period-select:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.period-select:focus {
+  border-color: var(--hcdn-accent);
+  box-shadow: 0 0 0 2px var(--hcdn-accent-light);
+}
+
+.period-select option {
+  background-color: var(--hcdn-blue-dark);
+  color: var(--text-on-dark);
+}
+
 .nav-alert-badge {
   background: var(--hcdn-red);
   color: white;

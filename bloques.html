@@ -20,7 +20,7 @@
   <main class="main">
     <div class="page-header">
       <h1>Bloques Parlamentarios</h1>
-      <p>Composición y actividad legislativa por bloque — Año 2025</p>
+      <p>Composición y actividad legislativa por bloque — <span id="header-period-label">Período Seleccionado</span></p>
     </div>
 
     <div id="bloque-detail" style="display:none"></div>
@@ -57,10 +57,6 @@
   <script src="js/data-loader.js"></script>
   <script src="js/app.js"></script>
   <script>
-    document.getElementById('nav-container').innerHTML = App.navHTML();
-    document.getElementById('footer-container').innerHTML = App.footerHTML();
-    App.initNav();
-
     const BLOQUE_COLORS = [
       '#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444',
       '#06b6d4','#d4a027','#ec4899','#84cc16','#f97316',
@@ -90,6 +86,9 @@
       });
       const topAutores = Object.entries(autorCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
+      const activeList = DataLoader.periods?.find(p => p.year === DataLoader.getActivePeriod());
+      const labelShort = activeList ? activeList.year : '2025';
+
       el.innerHTML = `
         <a href="bloques.html" class="back-link">← Volver a bloques</a>
         <div class="detail-header">
@@ -104,7 +103,7 @@
               <div class="detail-meta-value">${bloque ? App.titleCase(bloque.presidente_apellido + ', ' + bloque.presidente_nombre) : '—'}</div>
             </div>
             <div class="detail-meta-item">
-              <div class="detail-meta-label">Proyectos 2025</div>
+              <div class="detail-meta-label">Proyectos ${labelShort}</div>
               <div class="detail-meta-value">${App.formatNum(bloqueProjects.length)}</div>
             </div>
             <div class="detail-meta-item">
@@ -172,10 +171,18 @@
     }
 
     (async () => {
+      await App.initGlobals();
+      
       const bloqueParam = App.getParam('bloque');
       if (bloqueParam) {
         await showBloqueDetail(bloqueParam);
         return;
+      }
+
+      // Update Header Label
+      const active = DataLoader.periods?.find(p => p.year === DataLoader.getActivePeriod());
+      if (active) {
+        document.getElementById('header-period-label').innerText = active.label;
       }
 
       const bloques = await DataLoader.loadBloques();
@@ -231,30 +238,39 @@
 
       // Productividad (proyectos per diputado)
       const withProj = bloques.filter(b => b.proyectos > 0 && b.cantidad > 0);
-      withProj.sort((a, b) => (b.proyectos / b.cantidad) - (a.proyectos / a.cantidad));
       
-      new Chart(document.getElementById('chart-productividad'), {
-        type: 'bar',
-        data: {
-          labels: withProj.map(b => b.nombre.length > 25 ? b.nombre.substring(0, 22) + '…' : b.nombre),
-          datasets: [{
-            label: 'Proy./Diputado',
-            data: withProj.map(b => +(b.proyectos / b.cantidad).toFixed(1)),
-            backgroundColor: withProj.map((_, i) => BLOQUE_COLORS[i % BLOQUE_COLORS.length] + '55'),
-            borderColor: withProj.map((_, i) => BLOQUE_COLORS[i % BLOQUE_COLORS.length]),
-            borderWidth: 1, borderRadius: 4,
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#556a8a' } },
-            y: { grid: { display: false }, ticks: { color: '#8899b4', font: { size: 11 } } }
+      if (withProj.length === 0) {
+        document.getElementById('chart-productividad').parentElement.innerHTML = `
+          <div class="empty-state" style="height:100%;display:flex;flex-direction:column;justify-content:center;border:none">
+            <div class="emoji" style="font-size:32px;margin:0">📊</div>
+            <p style="color:var(--text-muted);font-size:14px;margin-top:8px">Sin proyectos presentados</p>
+          </div>
+        `;
+      } else {
+        withProj.sort((a, b) => (b.proyectos / b.cantidad) - (a.proyectos / a.cantidad));
+        new Chart(document.getElementById('chart-productividad'), {
+          type: 'bar',
+          data: {
+            labels: withProj.map(b => b.nombre.length > 25 ? b.nombre.substring(0, 22) + '…' : b.nombre),
+            datasets: [{
+              label: 'Proy./Diputado',
+              data: withProj.map(b => +(b.proyectos / b.cantidad).toFixed(1)),
+              backgroundColor: withProj.map((_, i) => BLOQUE_COLORS[i % BLOQUE_COLORS.length] + '55'),
+              borderColor: withProj.map((_, i) => BLOQUE_COLORS[i % BLOQUE_COLORS.length]),
+              borderWidth: 1, borderRadius: 4,
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#556a8a' } },
+              y: { grid: { display: false }, ticks: { color: '#8899b4', font: { size: 11 } } }
+            }
           }
-        }
-      });
+        });
+      }
 
       // Full list
       const maxQ = bloques[0]?.cantidad || 1;

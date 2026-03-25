@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="Monitor HCDN">
   <link rel="manifest" href="manifest.json">
   <title>Monitor HCDN — Dashboard Legislativo</title>
-  <meta name="description" content="Plataforma de monitoreo del trabajo legislativo de la Honorable Cámara de Diputados de la Nación Argentina. Período 143, año 2025.">
+  <meta name="description" content="Plataforma de monitoreo del trabajo legislativo de la Honorable Cámara de Diputados de la Nación Argentina.">
   <link rel="stylesheet" href="css/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
@@ -24,13 +24,13 @@
     <section class="hero">
       <h1>Monitor Legislativo<span>Cámara de Diputados de la Nación</span></h1>
       <div class="hero-divider"></div>
-      <p>Seguimiento y análisis de proyectos parlamentarios, comisiones y bloques.<br>Período 143 — Año 2025</p>
+      <p>Seguimiento y análisis de proyectos parlamentarios, comisiones y bloques.<br><span id="hero-period-label">Período Seleccionado</span></p>
     </section>
 
     <!-- KPI Cards -->
     <div class="kpi-grid" id="kpis">
       <div class="kpi-card animate-in">
-        <div class="kpi-label">Proyectos 2025</div>
+        <div class="kpi-label">Proyectos del Año</div>
         <div class="kpi-value" id="kpi-total">—</div>
         <div class="kpi-sub" id="kpi-total-sub"></div>
       </div>
@@ -115,14 +115,18 @@
   <script src="js/data-loader.js"></script>
   <script src="js/app.js"></script>
   <script>
-    document.getElementById('nav-container').innerHTML = App.navHTML();
-    document.getElementById('footer-container').innerHTML = App.footerHTML();
-    App.initNav();
-
     (async () => {
+      await App.initGlobals();
+      
       const stats = await DataLoader.loadStats();
       const proyectos = await DataLoader.loadProyectos();
       if (!stats || !proyectos) return;
+
+      // Update Hero Label
+      const active = DataLoader.periods?.find(p => p.year === DataLoader.getActivePeriod());
+      if (active) {
+        document.getElementById('hero-period-label').innerText = active.label;
+      }
 
       // ── KPIs ──
       document.getElementById('kpi-total').textContent = App.formatNum(stats.total_proyectos);
@@ -132,6 +136,26 @@
       document.getElementById('kpi-comisiones').textContent = stats.total_comisiones_activas;
       document.getElementById('kpi-diputados').textContent = stats.total_diputados;
       document.getElementById('kpi-bloques-sub').textContent = `${stats.total_bloques} bloques`;
+
+      if (stats.total_proyectos === 0) {
+        document.querySelector('.dashboard-grid').style.display = 'none';
+        document.querySelectorAll('.grid-2')[0].style.display = 'none';
+        document.getElementById('ranking-autores').parentElement.style.display = 'none';
+        document.getElementById('recent-projects').parentElement.style.display = 'none';
+        
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'card animate-in';
+        emptyMsg.style.textAlign = 'center';
+        emptyMsg.style.padding = '60px 20px';
+        emptyMsg.style.marginTop = '24px';
+        emptyMsg.innerHTML = `
+            <div class="emoji" style="font-size: 48px; margin-bottom: 16px;">🌱</div>
+            <h2 style="color: var(--text-base); margin-bottom: 8px;">Nuevo período legislativo</h2>
+            <p style="color: var(--text-muted);">Aún no se han presentado proyectos oficiales en este período.</p>
+        `;
+        document.querySelector('.dashboard-grid').insertAdjacentElement('beforebegin', emptyMsg);
+        return;
+      }
 
       // ── Tipo Donut ──
       const tipoLabels = ['Ley', 'Resolución', 'Declaración', 'Mensaje'];
