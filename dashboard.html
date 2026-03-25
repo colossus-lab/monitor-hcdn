@@ -42,7 +42,7 @@
       <div class="kpi-card animate-in">
         <div class="kpi-label">Comisiones Activas</div>
         <div class="kpi-value" id="kpi-comisiones">—</div>
-        <div class="kpi-sub">Con giros de proyectos</div>
+        <div class="kpi-sub" id="kpi-comisiones-sub">Con giros de proyectos</div>
       </div>
       <div class="kpi-card animate-in">
         <div class="kpi-label">Diputados</div>
@@ -134,6 +134,11 @@
         `${App.formatNum(stats.total_por_tipo.RESOLUCION || 0)} R · ${App.formatNum(stats.total_por_tipo.DECLARACION || 0)} D · ${App.formatNum(stats.total_por_tipo.MENSAJE || 0)} M`;
       document.getElementById('kpi-leyes').textContent = App.formatNum(stats.total_por_tipo.LEY || 0);
       document.getElementById('kpi-comisiones').textContent = stats.total_comisiones_activas;
+      
+      const permCount = stats.total_comisiones_permanentes || 0;
+      const espCount = stats.total_comisiones_especiales || 0;
+      document.getElementById('kpi-comisiones-sub').textContent = `${permCount} Permanentes · ${espCount} Especiales`;
+      
       document.getElementById('kpi-diputados').textContent = stats.total_diputados;
       document.getElementById('kpi-bloques-sub').textContent = `${stats.total_bloques} bloques`;
 

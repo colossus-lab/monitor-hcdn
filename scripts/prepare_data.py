@@ -252,6 +252,8 @@ for period in PERIODS:
         "top_autores": top_autores,
         "top_comisiones": top_comisiones,
         "total_comisiones_activas": len([c for c in comisiones_out if c.get("tipo") == "P" or c.get("proyectos", 0) > 0]),
+        "total_comisiones_permanentes": len([c for c in comisiones_out if c.get("tipo") == "P"]),
+        "total_comisiones_especiales": len([c for c in comisiones_out if c.get("tipo") == "E"]),
         "total_bloques": len(listado_bloques),
         "total_diputados": len(diputados_actual),
         "fecha_min": min((p["fecha"] for p in proyectos_index if p["fecha"]), default=""),
