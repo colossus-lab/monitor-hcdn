@@ -1245,3 +1245,64 @@ html {
   color: #1a1d2e;
   background: #ffffff;
 }
+
+/* ── Global Search Bar Navbar ──────────────────────────────────────────── */
+.global-search-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.global-search-input {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 6px 16px 6px 36px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  width: 200px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.global-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.global-search-input:focus {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  width: 260px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+/* Glassmorphism search icon inside input via background-image */
+.global-search-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.6)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+}
+
+/* Mobile responsive adjustments for navbar search */
+@media (max-width: 900px) {
+  .global-search-input {
+    width: 140px;
+  }
+  .global-search-input:focus {
+    width: 180px;
+  }
+}
+
+@media (max-width: 600px) {
+  .nav-selector {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .global-search-input {
+    width: 100%;
+  }
+  .global-search-input:focus {
+    width: 100%;
+  }
+}

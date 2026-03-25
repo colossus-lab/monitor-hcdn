@@ -106,6 +106,19 @@ const App = {
       });
     }
 
+    // Global Search logic
+    const globalSearch = document.getElementById('global-search-input');
+    if (globalSearch) {
+      globalSearch.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const val = e.target.value.trim();
+          if (val) {
+            window.location.href = `proyectos.html?q=${encodeURIComponent(val)}`;
+          }
+        }
+      });
+    }
+
     // Update alert badge count
     this.updateAlertBadge();
   },
@@ -201,7 +214,14 @@ const App = {
           <li><a href="comisiones.html">Comisiones</a></li>
           <li><a href="bloques.html">Bloques</a></li>
           <li><a href="alertas.html">Alertas${alertBadge ? '<span class="nav-alert-badge" style="display:none">0</span>' : ''}</a></li>
-          <li class="nav-selector">
+          
+          <li class="nav-selector" style="display:flex;align-items:center;gap:12px;margin-left:12px;">
+             <!-- Global Search Bar -->
+             <div class="global-search-container">
+               <input type="text" id="global-search-input" class="global-search-input" placeholder="🔍 Buscar proyecto, autor..." aria-label="Buscador global">
+             </div>
+             
+             <!-- Period Selector -->
              <div style="display:flex;align-items:center;gap:4px">
                <span style="font-size:12px;opacity:0.75;font-weight:600">PERÍODO:</span>
                <select id="period-selector" class="period-select" aria-label="Seleccionar período"></select>

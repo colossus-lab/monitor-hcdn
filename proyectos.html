@@ -181,12 +181,15 @@
       if (!allProyectos) { allProyectos = []; return; }
 
       // Check URL params for pre-filtering
+      const paramQ = App.getParam('q');
       const paramAutor = App.getParam('autor');
       const paramCom = App.getParam('com');
       const paramBloque = App.getParam('bloque');
       const paramTipo = App.getParam('tipo');
 
-      if (paramAutor) document.getElementById('search').value = paramAutor;
+      if (paramQ) document.getElementById('search').value = paramQ;
+      else if (paramAutor) document.getElementById('search').value = paramAutor;
+      
       if (paramTipo) document.getElementById('filter-tipo').value = paramTipo;
       if (paramCom) document.getElementById('filter-comision').value = paramCom;
       if (paramBloque) document.getElementById('filter-bloque').value = paramBloque;
