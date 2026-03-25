@@ -137,7 +137,10 @@
       document.getElementById('kpi-diputados').textContent = stats.total_diputados;
       document.getElementById('kpi-bloques-sub').textContent = `${stats.total_bloques} bloques`;
 
-      if (stats.total_proyectos === 0) {
+      // Trigger empty state if there is no significant activity (e.g. no giros to comisiones yet)
+      const isPeriodEmpty = stats.total_proyectos === 0 || (stats.top_comisiones.length === 0 && stats.top_autores.length === 0);
+      
+      if (isPeriodEmpty) {
         document.querySelector('.dashboard-grid').style.display = 'none';
         document.querySelectorAll('.grid-2')[0].style.display = 'none';
         document.getElementById('ranking-autores').parentElement.style.display = 'none';
@@ -151,7 +154,7 @@
         emptyMsg.innerHTML = `
             <div class="emoji" style="font-size: 48px; margin-bottom: 16px;">🌱</div>
             <h2 style="color: var(--text-base); margin-bottom: 8px;">Nuevo período legislativo</h2>
-            <p style="color: var(--text-muted);">Aún no se han presentado proyectos oficiales en este período.</p>
+            <p style="color: var(--text-muted);">Aún no se ha registrado labor parlamentaria suficiente en comisiones para este período.</p>
         `;
         document.querySelector('.dashboard-grid').insertAdjacentElement('beforebegin', emptyMsg);
         return;
