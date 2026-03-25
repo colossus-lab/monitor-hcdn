@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proyectos — Monitor HCDN</title>
+  <meta name="description" content="Explorar todos los proyectos parlamentarios de la Cámara de Diputados 2025. Filtrar por tipo, comisión, bloque y buscar por título o autor.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="nav-container"></div>
+  <main class="main">
+    <div class="page-header">
+      <h1>Proyectos Parlamentarios</h1>
+      <p>Todos los proyectos con estado parlamentario — Año 2025</p>
+    </div>
+
+    <div class="filters-bar" id="filters">
+      <div class="search-wrapper">
+        <input type="text" class="search-input" id="search" placeholder="Buscar por título, autor o expediente..." autocomplete="off">
+      </div>
+      <select class="filter-select" id="filter-tipo">
+        <option value="">Todos los tipos</option>
+        <option value="LEY">Ley</option>
+        <option value="RESOLUCION">Resolución</option>
+        <option value="DECLARACION">Declaración</option>
+        <option value="MENSAJE">Mensaje</option>
+        <option value="MENSAJE Y PROYECTO DE LEY">Mensaje y PL</option>
+      </select>
+      <select class="filter-select" id="filter-comision"><option value="">Todas las comisiones</option></select>
+      <select class="filter-select" id="filter-bloque"><option value="">Todos los bloques</option></select>
+      <div class="filter-count" id="result-count">—</div>
+    </div>
+
+    <div class="project-list" id="project-list">
+      <div class="loading"><div class="loading-spinner"></div> Cargando proyectos...</div>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+  </main>
+  <div id="footer-container"></div>
+
+  <script src="js/data-loader.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('nav-container').innerHTML = App.navHTML();
+    document.getElementById('footer-container').innerHTML = App.footerHTML();
+    App.initNav();
+
+    const PAGE_SIZE = 50;
+    let allProyectos = [];
+    let filtered = [];
+    let currentPage = 1;
+
+    // Populate filter dropdowns
+    async function initFilters() {
+      const comisiones = await DataLoader.loadComisiones();
+      const bloques = await DataLoader.loadBloques();
+      
+      if (comisiones) {
+        const sel = document.getElementById('filter-comision');
+        comisiones.filter(c => c.proyectos > 0).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.nombre;
+          opt.textContent = `${App.titleCase(c.nombre)} (${c.proyectos})`;
+          sel.appendChild(opt);
+        });
+      }
+
+      if (bloques) {
+        const sel = document.getElementById('filter-bloque');
+        bloques.filter(b => b.proyectos > 0).forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b.nombre;
+          opt.textContent = `${b.nombre} (${b.proyectos})`;
+          sel.appendChild(opt);
+        });
+      }
+    }
+
+    function applyFilters() {
+      const q = document.getElementById('search').value.toLowerCase().trim();
+      const tipo = document.getElementById('filter-tipo').value;
+      const com = document.getElementById('filter-comision').value;
+      const bloque = document.getElementById('filter-bloque').value;
+
+      filtered = allProyectos.filter(p => {
+        if (tipo && p.tipo !== tipo) return false;
+        if (com && p.com !== com) return false;
+        if (bloque && p.bloque !== bloque) return false;
+        if (q) {
+          const haystack = `${p.t} ${p.autor} ${p.exp}`.toLowerCase();
+          const words = q.split(/\s+/);
+          if (!words.every(w => haystack.includes(w))) return false;
+        }
+        return true;
+      });
+
+      currentPage = 1;
+      renderList();
+    }
+
+    function renderList() {
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const page = filtered.slice(start, start + PAGE_SIZE);
+
+      document.getElementById('result-count').textContent = `${App.formatNum(total)} resultados`;
+
+      if (total === 0) {
+        document.getElementById('project-list').innerHTML = `
+          <div class="empty-state"><div class="emoji">🔍</div><p>No se encontraron proyectos con esos filtros</p></div>`;
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+
+      document.getElementById('project-list').innerHTML = page.map(p => `
+        <div class="project-item" onclick="App.goToProject('${p.id}')">
+          <span class="badge ${App.badgeClass(p.tipo)}">${p.tipo}</span>
+          <div>
+            <div class="project-title">${p.t}</div>
+            <div class="project-meta">
+              <span>👤 ${App.titleCase(p.autor)}</span>
+              ${p.com ? `<span>📁 ${App.titleCase(p.com)}</span>` : ''}
+              ${p.exp ? `<span>📄 ${p.exp}</span>` : ''}
+              ${p.bloque ? `<span>🏛️ ${p.bloque}</span>` : ''}
+            </div>
+          </div>
+          <div class="project-date">${App.formatDate(p.fecha)}</div>
+        </div>
+      `).join('');
+
+      // Pagination
+      let pagHTML = '';
+      pagHTML += `<button ${currentPage <= 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})">← Anterior</button>`;
+      
+      const maxButtons = 5;
+      let startP = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+      let endP = Math.min(totalPages, startP + maxButtons - 1);
+      if (endP - startP < maxButtons - 1) startP = Math.max(1, endP - maxButtons + 1);
+
+      for (let i = startP; i <= endP; i++) {
+        pagHTML += `<button class="${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+      }
+      
+      pagHTML += `<span class="page-info">${App.formatNum(start + 1)}-${App.formatNum(Math.min(start + PAGE_SIZE, total))} de ${App.formatNum(total)}</span>`;
+      pagHTML += `<button ${currentPage >= totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})">Siguiente →</button>`;
+      document.getElementById('pagination').innerHTML = pagHTML;
+    }
+
+    function goPage(p) {
+      currentPage = p;
+      renderList();
+      window.scrollTo({ top: 200, behavior: 'smooth' });
+    }
+
+    // Debounced search
+    let searchTimeout;
+    document.getElementById('search').addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(applyFilters, 200);
+    });
+    document.getElementById('filter-tipo').addEventListener('change', applyFilters);
+    document.getElementById('filter-comision').addEventListener('change', applyFilters);
+    document.getElementById('filter-bloque').addEventListener('change', applyFilters);
+
+    // Init
+    (async () => {
+      await initFilters();
+      allProyectos = await DataLoader.loadProyectos();
+      if (!allProyectos) { allProyectos = []; return; }
+
+      // Check URL params for pre-filtering
+      const paramAutor = App.getParam('autor');
+      const paramCom = App.getParam('com');
+      const paramBloque = App.getParam('bloque');
+      const paramTipo = App.getParam('tipo');
+
+      if (paramAutor) document.getElementById('search').value = paramAutor;
+      if (paramTipo) document.getElementById('filter-tipo').value = paramTipo;
+      if (paramCom) document.getElementById('filter-comision').value = paramCom;
+      if (paramBloque) document.getElementById('filter-bloque').value = paramBloque;
+
+      applyFilters();
+    })();
+  </script>
+</body>
+</html>

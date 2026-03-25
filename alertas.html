@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alertas — Monitor HCDN</title>
+  <meta name="description" content="Configurar alertas para recibir notificaciones de nuevos proyectos parlamentarios por palabra clave, tipo, comisión o bloque.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="nav-container"></div>
+  <main class="main">
+    <div class="page-header">
+      <h1>🔔 Alertas de Proyectos</h1>
+      <p>Configurá alertas para monitorear proyectos que te interesen. Se guardan en tu navegador.</p>
+    </div>
+
+    <!-- Create Alert -->
+    <div class="alert-config">
+      <div class="card-title" style="margin-bottom:var(--sp-md)">➕ Nueva Alerta</div>
+      <div class="alert-form" id="alert-form">
+        <div style="flex:1;min-width:200px">
+          <label>Palabra clave</label>
+          <input type="text" id="alert-keyword" placeholder="ej: educación, salud, presupuesto...">
+        </div>
+        <div>
+          <label>Tipo</label>
+          <select id="alert-tipo">
+            <option value="">Cualquiera</option>
+            <option value="LEY">Ley</option>
+            <option value="RESOLUCION">Resolución</option>
+            <option value="DECLARACION">Declaración</option>
+            <option value="MENSAJE">Mensaje</option>
+          </select>
+        </div>
+        <div>
+          <label>Comisión</label>
+          <select id="alert-comision"><option value="">Cualquiera</option></select>
+        </div>
+        <div>
+          <label>Bloque</label>
+          <select id="alert-bloque"><option value="">Cualquiera</option></select>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button class="btn-primary" id="btn-add-alert">Crear Alerta</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Alerts -->
+    <div class="card" style="margin-bottom:var(--sp-xl)">
+      <div class="card-header">
+        <div class="card-title">⚡ Alertas Activas</div>
+        <div class="card-subtitle" id="alerts-count">—</div>
+      </div>
+      <div id="active-alerts">
+        <div class="empty-state" style="padding:24px"><p>No tenés alertas configuradas</p></div>
+      </div>
+    </div>
+
+    <!-- Matching Projects -->
+    <div id="matching-section" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-md)">
+        <h2 class="section-title"><span class="emoji">📋</span> Proyectos que Coinciden</h2>
+        <button class="btn-ghost btn-sm" id="btn-mark-seen">Marcar todos como vistos</button>
+      </div>
+      <div class="project-list" id="matching-projects"></div>
+      <div class="pagination" id="matching-pagination"></div>
+    </div>
+  </main>
+  <div id="footer-container"></div>
+
+  <script src="js/data-loader.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('nav-container').innerHTML = App.navHTML();
+    document.getElementById('footer-container').innerHTML = App.footerHTML();
+    App.initNav();
+
+    const MATCH_PAGE_SIZE = 30;
+    let matchPage = 1;
+    let matchedProjects = [];
+
+    async function populateDropdowns() {
+      const [comisiones, bloques] = await Promise.all([
+        DataLoader.loadComisiones(),
+        DataLoader.loadBloques()
+      ]);
+      if (comisiones) {
+        const sel = document.getElementById('alert-comision');
+        comisiones.filter(c => c.proyectos > 0).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.nombre;
+          opt.textContent = App.titleCase(c.nombre);
+          sel.appendChild(opt);
+        });
+      }
+      if (bloques) {
+        const sel = document.getElementById('alert-bloque');
+        bloques.forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b.nombre;
+          opt.textContent = b.nombre;
+          sel.appendChild(opt);
+        });
+      }
+    }
+
+    function renderAlerts() {
+      const alerts = App.getAlerts();
+      document.getElementById('alerts-count').textContent = `${alerts.length} alerta${alerts.length !== 1 ? 's' : ''}`;
+
+      if (alerts.length === 0) {
+        document.getElementById('active-alerts').innerHTML =
+          '<div class="empty-state" style="padding:24px"><p>No tenés alertas configuradas</p></div>';
+        document.getElementById('matching-section').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('active-alerts').innerHTML = `
+        <div class="alert-tags">
+          ${alerts.map((a, i) => {
+            const parts = [];
+            if (a.keyword) parts.push(`"${a.keyword}"`);
+            if (a.tipo) parts.push(a.tipo);
+            if (a.comision) parts.push(App.titleCase(a.comision));
+            if (a.bloque) parts.push(a.bloque);
+            return `<div class="alert-tag">
+              ${parts.join(' · ')}
+              <span class="remove" onclick="removeAlert(${i})">✕</span>
+            </div>`;
+          }).join('')}
+        </div>
+      `;
+
+      findMatches();
+    }
+
+    async function findMatches() {
+      const alerts = App.getAlerts();
+      if (alerts.length === 0) return;
+
+      const proyectos = await DataLoader.loadProyectos();
+      if (!proyectos) return;
+
+      matchedProjects = proyectos.filter(p => {
+        for (const a of alerts) {
+          if (App.projectMatchesAlert(p, a)) return true;
+        }
+        return false;
+      });
+
+      const section = document.getElementById('matching-section');
+      if (matchedProjects.length === 0) {
+        section.style.display = 'block';
+        document.getElementById('matching-projects').innerHTML =
+          '<div class="empty-state" style="padding:24px"><p>Ningún proyecto coincide con tus alertas</p></div>';
+        document.getElementById('matching-pagination').innerHTML = '';
+        return;
+      }
+
+      section.style.display = 'block';
+      matchPage = 1;
+      renderMatchPage();
+    }
+
+    function renderMatchPage() {
+      const total = matchedProjects.length;
+      const totalPages = Math.ceil(total / MATCH_PAGE_SIZE);
+      const start = (matchPage - 1) * MATCH_PAGE_SIZE;
+      const page = matchedProjects.slice(start, start + MATCH_PAGE_SIZE);
+
+      const lastSeen = App.getLastSeen();
+
+      document.getElementById('matching-projects').innerHTML = page.map(p => {
+        const isNew = p.fecha > lastSeen;
+        return `
+        <div class="project-item" onclick="App.goToProject('${p.id}')" style="${isNew ? 'border-left:3px solid var(--hcdn-accent);' : ''}">
+          <span class="badge ${App.badgeClass(p.tipo)}">${p.tipo}</span>
+          <div>
+            <div class="project-title">
+              ${isNew ? '<span style="color:var(--hcdn-accent);font-size:10px;font-weight:700;margin-right:6px">NUEVO</span>' : ''}
+              ${p.t}
+            </div>
+            <div class="project-meta">
+              <span>👤 ${App.titleCase(p.autor)}</span>
+              ${p.com ? `<span>📁 ${App.titleCase(p.com)}</span>` : ''}
+            </div>
+          </div>
+          <div class="project-date">${App.formatDate(p.fecha)}</div>
+        </div>`;
+      }).join('');
+
+      // Pagination
+      let html = `<span class="page-info">${App.formatNum(total)} proyectos coinciden</span>`;
+      if (totalPages > 1) {
+        html += `<button ${matchPage <= 1 ? 'disabled' : ''} onclick="matchGoPage(${matchPage - 1})">←</button>`;
+        html += `<span class="page-info">${matchPage} / ${totalPages}</span>`;
+        html += `<button ${matchPage >= totalPages ? 'disabled' : ''} onclick="matchGoPage(${matchPage + 1})">→</button>`;
+      }
+      document.getElementById('matching-pagination').innerHTML = html;
+    }
+
+    function matchGoPage(p) {
+      matchPage = p;
+      renderMatchPage();
+    }
+
+    function addAlert() {
+      const keyword = document.getElementById('alert-keyword').value.trim();
+      const tipo = document.getElementById('alert-tipo').value;
+      const comision = document.getElementById('alert-comision').value;
+      const bloque = document.getElementById('alert-bloque').value;
+
+      if (!keyword && !tipo && !comision && !bloque) {
+        alert('Especificá al menos un criterio para la alerta.');
+        return;
+      }
+
+      const alerts = App.getAlerts();
+      const newAlert = {};
+      if (keyword) newAlert.keyword = keyword;
+      if (tipo) newAlert.tipo = tipo;
+      if (comision) newAlert.comision = comision;
+      if (bloque) newAlert.bloque = bloque;
+      alerts.push(newAlert);
+      App.saveAlerts(alerts);
+
+      // Clear form
+      document.getElementById('alert-keyword').value = '';
+      document.getElementById('alert-tipo').value = '';
+      document.getElementById('alert-comision').value = '';
+      document.getElementById('alert-bloque').value = '';
+
+      renderAlerts();
+      App.updateAlertBadge();
+    }
+
+    function removeAlert(idx) {
+      const alerts = App.getAlerts();
+      alerts.splice(idx, 1);
+      App.saveAlerts(alerts);
+      renderAlerts();
+      App.updateAlertBadge();
+    }
+
+    document.getElementById('btn-add-alert').addEventListener('click', addAlert);
+    document.getElementById('btn-mark-seen').addEventListener('click', () => {
+      const now = new Date().toISOString().substring(0, 10);
+      App.setLastSeen(now);
+      renderAlerts();
+      App.updateAlertBadge();
+    });
+
+    // Allow entering with enter key
+    document.getElementById('alert-keyword').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addAlert();
+    });
+
+    // Init
+    (async () => {
+      await populateDropdowns();
+      renderAlerts();
+    })();
+  </script>
+</body>
+</html>

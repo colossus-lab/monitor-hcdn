@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comisiones — Monitor HCDN</title>
+  <meta name="description" content="Comisiones de la Cámara de Diputados: ranking por cantidad de proyectos, integrantes y distribución temática.">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="nav-container"></div>
+  <main class="main">
+    <div class="page-header">
+      <h1>Comisiones Parlamentarias</h1>
+      <p>Comisiones con giros de proyectos — Año 2025</p>
+    </div>
+
+    <!-- Single commission detail view (hidden by default) -->
+    <div id="comision-detail" style="display:none"></div>
+
+    <!-- Ranking view -->
+    <div id="comision-list">
+      <div class="grid-2" style="margin-bottom:var(--sp-xl)">
+        <div class="card animate-in">
+          <div class="card-header">
+            <div class="card-title">🏆 Ranking de Comisiones</div>
+            <div class="card-subtitle" id="com-count">—</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-comisiones" height="500"></canvas>
+          </div>
+        </div>
+        <div class="card animate-in">
+          <div class="card-header">
+            <div class="card-title">📊 Distribución por Tipo</div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-com-tipos" height="500"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title"><span class="emoji">📋</span> Todas las Comisiones</div>
+      <div class="ranking-list" id="all-comisiones"></div>
+    </div>
+  </main>
+  <div id="footer-container"></div>
+
+  <script src="js/data-loader.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    document.getElementById('nav-container').innerHTML = App.navHTML();
+    document.getElementById('footer-container').innerHTML = App.footerHTML();
+    App.initNav();
+
+    async function showComisionDetail(comName) {
+      const [comisiones, proyectos, giros] = await Promise.all([
+        DataLoader.loadComisiones(),
+        DataLoader.loadProyectos(),
+        DataLoader.loadGiros()
+      ]);
+
+      const com = comisiones.find(c => c.nombre === comName);
+      const projectIds = new Set(giros[comName] || []);
+      const comProjects = proyectos.filter(p => projectIds.has(p.id));
+
+      document.getElementById('comision-list').style.display = 'none';
+      const el = document.getElementById('comision-detail');
+      el.style.display = 'block';
+
+      // Type distribution for this comision
+      const tipos = {};
+      comProjects.forEach(p => { tipos[p.tipo] = (tipos[p.tipo] || 0) + 1; });
+
+      el.innerHTML = `
+        <a href="comisiones.html" class="back-link">← Volver a comisiones</a>
+        <div class="detail-header">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+            <span class="badge" style="background:var(--hcdn-gold-soft);color:var(--hcdn-gold)">${com?.tipo === 'P' ? 'PERMANENTE' : com?.tipo === 'E' ? 'ESPECIAL' : com?.tipo || 'COMISIÓN'}</span>
+          </div>
+          <h1>${App.titleCase(comName)}</h1>
+          <div class="detail-meta">
+            <div class="detail-meta-item">
+              <div class="detail-meta-label">Proyectos girados</div>
+              <div class="detail-meta-value">${App.formatNum(comProjects.length)}</div>
+            </div>
+            ${Object.entries(tipos).map(([t, c]) => `
+            <div class="detail-meta-item">
+              <div class="detail-meta-label">${t}</div>
+              <div class="detail-meta-value">${c}</div>
+            </div>`).join('')}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-md)">
+          <h2 class="section-title"><span class="emoji">📋</span> Proyectos en esta Comisión</h2>
+        </div>
+        <div class="project-list">
+          ${comProjects.slice(0, 100).map(p => `
+            <div class="project-item" onclick="App.goToProject('${p.id}')">
+              <span class="badge ${App.badgeClass(p.tipo)}">${p.tipo}</span>
+              <div>
+                <div class="project-title">${p.t}</div>
+                <div class="project-meta">
+                  <span>👤 ${App.titleCase(p.autor)}</span>
+                  <span>📄 ${p.exp || p.id}</span>
+                </div>
+              </div>
+              <div class="project-date">${App.formatDate(p.fecha)}</div>
+            </div>
+          `).join('')}
+          ${comProjects.length > 100 ? `
+          <div style="text-align:center;padding:var(--sp-md)">
+            <a href="proyectos.html?com=${encodeURIComponent(comName)}" class="btn-primary" style="display:inline-block;text-decoration:none">
+              Ver los ${App.formatNum(comProjects.length)} proyectos →
+            </a>
+          </div>` : ''}
+        </div>
+      `;
+    }
+
+    (async () => {
+      const comisionParam = App.getParam('com');
+      if (comisionParam) {
+        await showComisionDetail(comisionParam);
+        return;
+      }
+
+      const comisiones = await DataLoader.loadComisiones();
+      if (!comisiones) return;
+
+      const active = comisiones.filter(c => c.proyectos > 0);
+      document.getElementById('com-count').textContent = `${active.length} comisiones activas`;
+
+      // Horizontal bar chart - top 15
+      const top15 = active.slice(0, 15);
+      new Chart(document.getElementById('chart-comisiones'), {
+        type: 'bar',
+        data: {
+          labels: top15.map(c => {
+            const n = App.titleCase(c.nombre);
+            return n.length > 30 ? n.substring(0, 27) + '…' : n;
+          }),
+          datasets: [{
+            data: top15.map(c => c.proyectos),
+            backgroundColor: 'rgba(59,130,246,0.25)',
+            borderColor: '#3b82f6',
+            borderWidth: 1, borderRadius: 4,
+            hoverBackgroundColor: 'rgba(59,130,246,0.5)',
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          onClick: (e, els) => {
+            if (els.length) {
+              const idx = els[0].index;
+              App.goToComision(top15[idx].nombre);
+            }
+          },
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#556a8a' } },
+            y: { grid: { display: false }, ticks: { color: '#8899b4', font: { size: 11 } } }
+          }
+        }
+      });
+
+      // Stacked bar by type
+      const topForTypes = active.slice(0, 10);
+      const tipoKeys = ['LEY', 'RESOLUCION', 'DECLARACION'];
+      const tipoColors = { LEY: '#3b82f6', RESOLUCION: '#8b5cf6', DECLARACION: '#10b981' };
+      new Chart(document.getElementById('chart-com-tipos'), {
+        type: 'bar',
+        data: {
+          labels: topForTypes.map(c => App.titleCase(c.nombre).substring(0, 20)),
+          datasets: tipoKeys.map(t => ({
+            label: App.titleCase(t),
+            data: topForTypes.map(c => c.tipos[t] || 0),
+            backgroundColor: tipoColors[t] + '44',
+            borderColor: tipoColors[t],
+            borderWidth: 1,
+          }))
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top', labels: { color: '#8899b4', usePointStyle: true, pointStyleWidth: 8, font: { size: 11 } } }
+          },
+          scales: {
+            x: { stacked: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#556a8a' } },
+            y: { stacked: true, grid: { display: false }, ticks: { color: '#8899b4', font: { size: 11 } } }
+          }
+        }
+      });
+
+      // Full list
+      const maxProj = active[0]?.proyectos || 1;
+      document.getElementById('all-comisiones').innerHTML = active.map((c, i) => `
+        <div class="ranking-item" onclick="App.goToComision('${c.nombre.replace(/'/g, "\\'")}')">
+          <div class="ranking-pos">${i + 1}</div>
+          <div class="ranking-name">
+            ${App.titleCase(c.nombre)}
+            <span style="font-size:11px;color:var(--text-muted);margin-left:8px">${c.tipo === 'P' ? 'Permanente' : c.tipo === 'E' ? 'Especial' : ''}</span>
+          </div>
+          <div class="ranking-bar-wrapper"><div class="ranking-bar" style="width:${(c.proyectos / maxProj * 100).toFixed(1)}%"></div></div>
+          <div class="ranking-value">${c.proyectos}</div>
+        </div>
+      `).join('');
+    })();
+  </script>
+</body>
+</html>
