@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#242c4f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Monitor HCDN">
+  <link rel="manifest" href="manifest.json">
+  <title>Monitor HCDN — Dashboard Legislativo</title>
+  <meta name="description" content="Plataforma de monitoreo del trabajo legislativo de la Honorable Cámara de Diputados de la Nación Argentina.">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="nav-container"></div>
+
+  <main class="main">
+    <!-- Hero -->
+    <section class="hero">
+      <h1>Monitor Legislativo<span>Cámara de Diputados de la Nación</span></h1>
+      <div class="hero-divider"></div>
+      <p>Seguimiento y análisis de proyectos parlamentarios, comisiones y bloques.<br><span id="hero-period-label">Período Seleccionado</span></p>
+    </section>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" id="kpis">
+      <div class="kpi-card animate-in">
+        <div class="kpi-label">Proyectos del Año</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-sub" id="kpi-total-sub"></div>
+      </div>
+      <div class="kpi-card animate-in">
+        <div class="kpi-label">Proyectos de Ley</div>
+        <div class="kpi-value" id="kpi-leyes">—</div>
+        <div class="kpi-sub">Proyectos de tipo LEY</div>
+      </div>
+      <div class="kpi-card animate-in">
+        <div class="kpi-label">Comisiones Activas</div>
+        <div class="kpi-value" id="kpi-comisiones">—</div>
+        <div class="kpi-sub">Con giros de proyectos</div>
+      </div>
+      <div class="kpi-card animate-in">
+        <div class="kpi-label">Diputados</div>
+        <div class="kpi-value" id="kpi-diputados">—</div>
+        <div class="kpi-sub" id="kpi-bloques-sub"></div>
+      </div>
+    </div>
+
+    <!-- Row: Tipo distribution + Monthly activity -->
+    <div class="grid-2">
+      <div class="card animate-in">
+        <div class="card-header">
+          <div class="card-title">📊 Distribución por Tipo</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-tipos" height="260"></canvas>
+        </div>
+      </div>
+      <div class="card animate-in">
+        <div class="card-header">
+          <div class="card-title">📈 Actividad Mensual</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-mensual" height="260"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row: Top Comisiones + Top Bloques -->
+    <div class="grid-2">
+      <div class="card animate-in">
+        <div class="card-header">
+          <div class="card-title">🏆 Top Comisiones</div>
+          <a href="comisiones.html" class="card-subtitle" style="color:var(--text-accent)">Ver todas →</a>
+        </div>
+        <div class="ranking-list" id="ranking-comisiones"></div>
+      </div>
+      <div class="card animate-in">
+        <div class="card-header">
+          <div class="card-title">🏛️ Proyectos por Bloque</div>
+          <a href="bloques.html" class="card-subtitle" style="color:var(--text-accent)">Ver todos →</a>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-bloques" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Autores -->
+    <div class="card animate-in" style="margin-bottom:var(--sp-xl)">
+      <div class="card-header">
+        <div class="card-title">✍️ Diputados más Activos</div>
+        <div class="card-subtitle">Por cantidad de proyectos presentados</div>
+      </div>
+      <div class="ranking-list" id="ranking-autores"></div>
+    </div>
+
+    <!-- Recent Projects -->
+    <section class="animate-in">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-md)">
+        <h2 class="section-title"><span class="emoji">📋</span> Últimos Proyectos</h2>
+        <a href="proyectos.html" style="font-size:14px;font-weight:500;color:var(--text-accent)">Ver todos →</a>
+      </div>
+      <div class="project-list" id="recent-projects"></div>
+    </section>
+  </main>
+
+  <div id="footer-container"></div>
+
+  <script src="js/data-loader.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    (async () => {
+      await App.initGlobals();
+      
+      const stats = await DataLoader.loadStats();
+      const proyectos = await DataLoader.loadProyectos();
+      if (!stats || !proyectos) return;
+
+      // Update Hero Label
+      const active = DataLoader.periods?.find(p => p.year === DataLoader.getActivePeriod());
+      if (active) {
+        document.getElementById('hero-period-label').innerText = active.label;
+      }
+
+      // ── KPIs ──
+      document.getElementById('kpi-total').textContent = App.formatNum(stats.total_proyectos);
+      document.getElementById('kpi-total-sub').textContent = 
+        `${App.formatNum(stats.total_por_tipo.RESOLUCION || 0)} R · ${App.formatNum(stats.total_por_tipo.DECLARACION || 0)} D · ${App.formatNum(stats.total_por_tipo.MENSAJE || 0)} M`;
+      document.getElementById('kpi-leyes').textContent = App.formatNum(stats.total_por_tipo.LEY || 0);
+      document.getElementById('kpi-comisiones').textContent = stats.total_comisiones_activas;
+      document.getElementById('kpi-diputados').textContent = stats.total_diputados;
+      document.getElementById('kpi-bloques-sub').textContent = `${stats.total_bloques} bloques`;
+
+      // Trigger empty state if there is no significant activity (e.g. no giros to comisiones yet)
+      const isPeriodEmpty = stats.total_proyectos === 0 || (stats.top_comisiones.length === 0 && stats.top_autores.length === 0);
+      
+      if (isPeriodEmpty) {
+        document.querySelector('.dashboard-grid').style.display = 'none';
+        document.querySelectorAll('.grid-2')[0].style.display = 'none';
+        document.getElementById('ranking-autores').parentElement.style.display = 'none';
+        document.getElementById('recent-projects').parentElement.style.display = 'none';
+        
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'card animate-in';
+        emptyMsg.style.textAlign = 'center';
+        emptyMsg.style.padding = '60px 20px';
+        emptyMsg.style.marginTop = '24px';
+        emptyMsg.innerHTML = `
+            <div class="emoji" style="font-size: 48px; margin-bottom: 16px;">🌱</div>
+            <h2 style="color: var(--text-base); margin-bottom: 8px;">Nuevo período legislativo</h2>
+            <p style="color: var(--text-muted);">Aún no se ha registrado labor parlamentaria suficiente en comisiones para este período.</p>
+        `;
+        document.querySelector('.dashboard-grid').insertAdjacentElement('beforebegin', emptyMsg);
+        return;
+      }
+
+      // ── Tipo Donut ──
+      const tipoLabels = ['Ley', 'Resolución', 'Declaración', 'Mensaje'];
+      const tipoData = [
+        stats.total_por_tipo.LEY || 0,
+        stats.total_por_tipo.RESOLUCION || 0,
+        stats.total_por_tipo.DECLARACION || 0,
+        (stats.total_por_tipo.MENSAJE || 0) + (stats.total_por_tipo['MENSAJE Y PROYECTO DE LEY'] || 0),
+      ];
+      const tipoColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'];
+
+      new Chart(document.getElementById('chart-tipos'), {
+        type: 'doughnut',
+        data: {
+          labels: tipoLabels,
+          datasets: [{ data: tipoData, backgroundColor: tipoColors, borderWidth: 0, hoverOffset: 8 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          cutout: '65%',
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#5a6178', padding: 16, usePointStyle: true, pointStyleWidth: 8, font: { size: 12, family: 'Roboto Condensed' } } }
+          }
+        }
+      });
+
+      // ── Monthly Bar ──
+      const meses = Object.keys(stats.por_mes);
+      const mesLabels = meses.map(m => {
+        const names = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        return names[parseInt(m.split('-')[1]) - 1];
+      });
+
+      new Chart(document.getElementById('chart-mensual'), {
+        type: 'bar',
+        data: {
+          labels: mesLabels,
+          datasets: [{
+            data: Object.values(stats.por_mes),
+            backgroundColor: 'rgba(59,130,246,0.3)',
+            borderColor: '#3b82f6',
+            borderWidth: 1,
+            borderRadius: 4,
+            hoverBackgroundColor: 'rgba(59,130,246,0.5)',
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#5a6178', font: { size: 11, family: 'Roboto Condensed' } } },
+            y: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#5a6178', font: { size: 11, family: 'Roboto Condensed' } } }
+          }
+        }
+      });
+
+      // ── Top Comisiones Ranking ──
+      const maxCom = stats.top_comisiones[0]?.count || 1;
+      document.getElementById('ranking-comisiones').innerHTML = stats.top_comisiones.slice(0, 10).map((c, i) => `
+        <div class="ranking-item" onclick="App.goToComision('${c.comision.replace(/'/g, "\\'")}')">
+          <div class="ranking-pos">${i + 1}</div>
+          <div class="ranking-name">${App.titleCase(c.comision)}</div>
+          <div class="ranking-bar-wrapper"><div class="ranking-bar" style="width:${(c.count / maxCom * 100).toFixed(1)}%"></div></div>
+          <div class="ranking-value">${c.count}</div>
+        </div>
+      `).join('');
+
+      // ── Bloques Chart ──
+      const bloquesData = stats.bloques_productividad.filter(b => b.proyectos > 0).slice(0, 10);
+      new Chart(document.getElementById('chart-bloques'), {
+        type: 'bar',
+        data: {
+          labels: bloquesData.map(b => b.bloque.length > 25 ? b.bloque.substring(0, 22) + '…' : b.bloque),
+          datasets: [{
+            label: 'Proyectos',
+            data: bloquesData.map(b => b.proyectos),
+            backgroundColor: bloquesData.map((_, i) => {
+              const colors = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#d4a027','#ec4899','#84cc16','#f97316'];
+              return colors[i % colors.length] + '55';
+            }),
+            borderColor: bloquesData.map((_, i) => {
+              const colors = ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4','#d4a027','#ec4899','#84cc16','#f97316'];
+              return colors[i % colors.length];
+            }),
+            borderWidth: 1,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#5a6178', font: { size: 11, family: 'Roboto Condensed' } } },
+            y: { grid: { display: false }, ticks: { color: '#5a6178', font: { size: 11, family: 'Roboto Condensed' } } }
+          }
+        }
+      });
+
+      // ── Top Autores Ranking ──
+      const maxAut = stats.top_autores[0]?.count || 1;
+      document.getElementById('ranking-autores').innerHTML = stats.top_autores.slice(0, 10).map((a, i) => `
+        <div class="ranking-item" onclick="window.location.href='proyectos.html?autor=${encodeURIComponent(a.autor)}'">
+          <div class="ranking-pos">${i + 1}</div>
+          <div class="ranking-name">${App.titleCase(a.autor)}</div>
+          <div class="ranking-bar-wrapper"><div class="ranking-bar" style="width:${(a.count / maxAut * 100).toFixed(1)}%"></div></div>
+          <div class="ranking-value">${a.count}</div>
+        </div>
+      `).join('');
+
+      // ── Recent Projects ──
+      const recent = proyectos.slice(0, 15);
+      document.getElementById('recent-projects').innerHTML = recent.map(p => `
+        <div class="project-item" onclick="App.goToProject('${p.id}')">
+          <span class="badge ${App.badgeClass(p.tipo)}">${p.tipo}</span>
+          <div>
+            <div class="project-title">${p.t}</div>
+            <div class="project-meta">
+              <span>👤 ${App.titleCase(p.autor)}</span>
+              ${p.com ? `<span>📁 ${App.titleCase(p.com)}</span>` : ''}
+              ${p.exp ? `<span>📄 ${p.exp}</span>` : ''}
+            </div>
+          </div>
+          <div class="project-date">${App.formatDate(p.fecha)}</div>
+        </div>
+      `).join('');
+    })();
+  </script>
+</body>
+</html>
