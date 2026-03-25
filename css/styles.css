@@ -85,7 +85,10 @@
   margin: 0; padding: 0; box-sizing: border-box;
 }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
 
 body {
   font-family: 'Roboto', -apple-system, sans-serif;
@@ -94,6 +97,7 @@ body {
   line-height: 1.6;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 a { color: var(--text-accent); text-decoration: none; transition: color 0.2s; }
@@ -1019,12 +1023,13 @@ html {
 
   /* Hero compact */
   .hero {
-    margin: calc(-1 * var(--sp-lg)) calc(-1 * var(--sp-md)) var(--sp-lg);
-    padding: var(--sp-xl) var(--sp-md);
+    margin: calc(-1 * var(--sp-lg)) calc(-1 * var(--sp-md)) var(--sp-md);
+    padding: var(--sp-md) var(--sp-md);
   }
-  .hero h1 { font-size: 22px; letter-spacing: 0.5px; }
-  .hero h1 span { font-size: 13px; }
-  .hero p { font-size: 13px; }
+  .hero h1 { font-size: 18px; letter-spacing: 0.3px; }
+  .hero h1 span { font-size: 11px; margin-top: 4px; }
+  .hero p { font-size: 12px; margin-top: var(--sp-xs); }
+  .hero-divider { margin: var(--sp-xs) auto; width: 40px; height: 2px; }
 
   /* Main content */
   .main { padding: var(--sp-lg) var(--sp-sm) var(--sp-2xl); }
