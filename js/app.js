@@ -71,10 +71,12 @@ const App = {
 
   // Nav - highlight active link
   initNav() {
-    const page = window.location.pathname.split('/').pop() || 'index.html';
+    let page = window.location.pathname.split('/').pop();
+    if (!page || page === 'index.html') page = 'dashboard.html'; // Default nav active state if somehow included
+    
     document.querySelectorAll('.nav-links a').forEach(a => {
       const href = a.getAttribute('href');
-      if (href === page || (page === '' && href === 'index.html')) {
+      if (href === page) {
         a.classList.add('active');
       }
     });
@@ -185,21 +187,26 @@ const App = {
     </div>
     <nav class="nav">
       <div class="nav-inner">
-        <a href="index.html" class="nav-brand">
+        <a href="index.html" class="nav-brand" title="Volver a la selección de Período">
           <div class="icon">🏛️</div>
           <div class="brand-text">
             Monitor HCDN
-            <span class="brand-sub">Diputados Argentina</span>
+            <span class="brand-sub">Cambiar Período ➔</span>
           </div>
         </a>
         <button class="nav-toggle" aria-label="Menu">☰</button>
         <ul class="nav-links">
-          <li><a href="index.html">Dashboard</a></li>
+          <li><a href="dashboard.html">Dashboard</a></li>
           <li><a href="proyectos.html">Proyectos</a></li>
           <li><a href="comisiones.html">Comisiones</a></li>
           <li><a href="bloques.html">Bloques</a></li>
           <li><a href="alertas.html">Alertas${alertBadge ? '<span class="nav-alert-badge" style="display:none">0</span>' : ''}</a></li>
-          <li class="nav-selector"><select id="period-selector" class="period-select" aria-label="Seleccionar período"></select></li>
+          <li class="nav-selector">
+             <div style="display:flex;align-items:center;gap:4px">
+               <span style="font-size:12px;opacity:0.75;font-weight:600">PERÍODO:</span>
+               <select id="period-selector" class="period-select" aria-label="Seleccionar período"></select>
+             </div>
+          </li>
         </ul>
       </div>
     </nav>`;

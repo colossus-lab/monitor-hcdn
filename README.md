@@ -62,8 +62,9 @@ Si terminal dice `Pipeline fully completed!`, tus tablas y gráficos en la web s
 
 ```text
 Monitor HCDN/
-├── index.html            # Dashboard Principal
-├── proyectos.html        # Buscador y filtro de legislaciones
+├── index.html            # Landing Page (Selección de Período)
+├── dashboard.html        # Dashboard Principal (antiguo index.html)
+├── proyectos.html        # Buscador y listado de proyectos
 ├── comisiones.html       # Analytics de Comisiones Permanentes/Especiales
 ├── bloques.html          # Analytics y productividad de Bloques y Diputados
 ├── css/
