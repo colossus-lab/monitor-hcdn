@@ -3,6 +3,7 @@ const DataLoader = {
   cache: {},
   activePeriod: null,
   periods: [],
+  lastError: null,   // {filename, period, status} when a load fails
 
   async init() {
     try {
@@ -55,6 +56,7 @@ const DataLoader = {
       return data;
     } catch(e) {
       console.error(`Error loading ${filename} for period ${this.activePeriod}:`, e);
+      this.lastError = { filename, period: this.activePeriod, message: e.message };
       return null;
     }
   },

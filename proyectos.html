@@ -6,17 +6,27 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="format-detection" content="telephone=no">
-  <meta name="theme-color" content="#242c4f">
+  <meta name="theme-color" content="#06090F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
   <title>Proyectos — Monitor HCDN</title>
   <meta name="description" content="Explorar todos los proyectos parlamentarios de la Cámara de Diputados. Filtrar por tipo, comisión, bloque y buscar por título o autor.">
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('hcdn_theme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch(e) { document.documentElement.setAttribute('data-theme','dark'); }
+    })();
+  </script>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Saltar al contenido</a>
   <div id="nav-container"></div>
-  <main class="main">
+  <main class="main" id="main-content">
     <div class="page-header">
       <h1>Proyectos Parlamentarios</h1>
       <p>Todos los proyectos con estado parlamentario — <span id="header-period-label">Período Seleccionado</span></p>
@@ -112,8 +122,11 @@
       document.getElementById('result-count').textContent = `${App.formatNum(total)} resultados`;
 
       if (total === 0) {
-        document.getElementById('project-list').innerHTML = `
-          <div class="empty-state"><div class="emoji">🔍</div><p>No se encontraron proyectos con esos filtros</p></div>`;
+        App.emptyState('#project-list', {
+          icon: 'search',
+          title: 'Sin resultados',
+          message: 'No se encontraron proyectos con esos filtros. Probá ampliar la búsqueda o quitar algún filtro.'
+        });
         document.getElementById('pagination').innerHTML = '';
         return;
       }
@@ -124,10 +137,10 @@
           <div>
             <div class="project-title">${p.t}</div>
             <div class="project-meta">
-              <span>👤 ${App.titleCase(p.autor)}</span>
-              ${p.com ? `<span>📁 ${App.titleCase(p.com)}</span>` : ''}
-              ${p.exp ? `<span>📄 ${p.exp}</span>` : ''}
-              ${p.bloque ? `<span>🏛️ ${p.bloque}</span>` : ''}
+              <span>${App.icon('user')} ${App.titleCase(p.autor)}</span>
+              ${p.com ? `<span>${App.icon('folder')} ${App.titleCase(p.com)}</span>` : ''}
+              ${p.exp ? `<span>${App.icon('file')} ${p.exp}</span>` : ''}
+              ${p.bloque ? `<span>${App.icon('landmark')} ${p.bloque}</span>` : ''}
             </div>
           </div>
           <div class="project-date">${App.formatDate(p.fecha)}</div>
@@ -170,6 +183,8 @@
 
     // Init
     (async () => {
+      await App.initGlobals();
+
       // Update Header Label
       const activePeriodInfo = DataLoader.periods?.find(p => p.year === DataLoader.getActivePeriod());
       if (activePeriodInfo) {
@@ -178,7 +193,17 @@
 
       await initFilters();
       allProyectos = await DataLoader.loadProyectos();
-      if (!allProyectos) { allProyectos = []; return; }
+      if (!allProyectos) {
+        allProyectos = [];
+        App.emptyState('#project-list', {
+          icon: 'error', isError: true,
+          title: 'No se pudieron cargar los proyectos',
+          message: `No encontramos datos para el período ${DataLoader.getActivePeriod()}. Probá seleccionar otro período.`,
+          actionLabel: 'Cambiar período', actionHref: 'index.html'
+        });
+        document.getElementById('result-count').textContent = '—';
+        return;
+      }
 
       // Check URL params for pre-filtering
       const paramQ = App.getParam('q');

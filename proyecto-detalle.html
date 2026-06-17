@@ -6,17 +6,27 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="format-detection" content="telephone=no">
-  <meta name="theme-color" content="#242c4f">
+  <meta name="theme-color" content="#06090F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
   <title>Detalle de Proyecto — Monitor HCDN</title>
   <meta name="description" content="Detalle completo de proyecto parlamentario: timeline de movimientos, comisiones asignadas y estado actual.">
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('hcdn_theme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch(e) { document.documentElement.setAttribute('data-theme','dark'); }
+    })();
+  </script>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Saltar al contenido</a>
   <div id="nav-container"></div>
-  <main class="main">
+  <main class="main" id="main-content">
     <a href="proyectos.html" class="back-link">← Volver a proyectos</a>
 
     <div id="detail-content">
@@ -28,15 +38,12 @@
   <script src="js/data-loader.js"></script>
   <script src="js/app.js"></script>
   <script>
-    document.getElementById('nav-container').innerHTML = App.navHTML();
-    document.getElementById('footer-container').innerHTML = App.footerHTML();
-    App.initNav();
-
     (async () => {
+      await App.initGlobals();
+
       const id = App.getParam('id');
       if (!id) {
-        document.getElementById('detail-content').innerHTML = `
-          <div class="empty-state"><div class="emoji">⚠️</div><p>No se especificó un proyecto.</p></div>`;
+        App.emptyState('#detail-content', { icon: 'error', isError: true, title: 'Proyecto no especificado', message: 'No se indicó qué proyecto mostrar.', actionLabel: 'Ver proyectos', actionHref: 'proyectos.html' });
         return;
       }
 
@@ -45,11 +52,13 @@
         DataLoader.loadDetalles()
       ]);
 
-      if (!proyectos) return;
+      if (!proyectos) {
+        App.emptyState('#detail-content', { icon: 'error', isError: true, title: 'No se pudieron cargar los datos', message: `No encontramos datos para el período ${DataLoader.getActivePeriod()}.`, actionLabel: 'Cambiar período', actionHref: 'index.html' });
+        return;
+      }
       const proj = proyectos.find(p => p.id === id);
       if (!proj) {
-        document.getElementById('detail-content').innerHTML = `
-          <div class="empty-state"><div class="emoji">🔍</div><p>Proyecto no encontrado: ${id}</p></div>`;
+        App.emptyState('#detail-content', { icon: 'search', title: 'Proyecto no encontrado', message: `No existe un proyecto con el identificador ${id} en este período.`, actionLabel: 'Ver proyectos', actionHref: 'proyectos.html' });
         return;
       }
 
@@ -68,8 +77,8 @@
         <div class="detail-header">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
             <span class="badge ${App.badgeClass(proj.tipo)}" style="font-size:13px;padding:5px 14px">${proj.tipo}</span>
-            <span style="font-size:13px;color:var(--text-muted);font-family:'JetBrains Mono',monospace">${proj.exp || proj.id}</span>
-            <span class="badge" style="background:rgba(16,185,129,0.12);color:#10b981;font-size:11px">${proj.estado || 'EN TRÁMITE'}</span>
+            <span style="font-size:13px;color:var(--text-muted);font-family:var(--font-mono)">${proj.exp || proj.id}</span>
+            <span class="badge" style="background:rgba(52,211,153,0.12);color:var(--success);font-size:11px">${proj.estado || 'EN TRÁMITE'}</span>
           </div>
           <h1>${proj.t}</h1>
           <div class="detail-meta">
@@ -108,7 +117,7 @@
           <!-- Comisiones giradas -->
           <div class="card">
             <div class="card-header">
-              <div class="card-title">📁 Comisiones Asignadas</div>
+              <div class="card-title">${App.icon('folder')} Comisiones Asignadas</div>
               <div class="card-subtitle">${giros.length} comision${giros.length !== 1 ? 'es' : ''}</div>
             </div>
             ${giros.length > 0 ? `
@@ -125,7 +134,7 @@
           <!-- Timeline de movimientos -->
           <div class="card">
             <div class="card-header">
-              <div class="card-title">📜 Movimientos</div>
+              <div class="card-title">${App.icon('list')} Movimientos</div>
               <div class="card-subtitle">${movimientos.length} registro${movimientos.length !== 1 ? 's' : ''}</div>
             </div>
             ${movimientos.length > 0 ? `
