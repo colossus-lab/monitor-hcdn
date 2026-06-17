@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 630px; }
+  body {
+    position: relative;
+    overflow: hidden;
+    background: #06090F;
+    font-family: 'Inter', sans-serif;
+    color: #E8ECF4;
+  }
+  /* Architectural grid */
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(116,172,223,0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(116,172,223,0.10) 1px, transparent 1px),
+      linear-gradient(rgba(136,146,168,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(136,146,168,0.06) 1px, transparent 1px);
+    background-size: 240px 240px, 240px 240px, 80px 80px, 80px 80px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 90% at 30% 0%, #000 20%, transparent 78%);
+            mask-image: radial-gradient(ellipse 80% 90% at 30% 0%, #000 20%, transparent 78%);
+  }
+  .vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 120% 90% at 30% 10%, transparent 45%, #06090F 100%);
+  }
+  /* Top flag accent */
+  .topbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 6px;
+    background: linear-gradient(90deg, #74ACDF 0%, #74ACDF 40%, #FFD04A 60%, #F6B40E 100%);
+  }
+  .content {
+    position: absolute; inset: 0;
+    padding: 80px 84px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px; font-weight: 500;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: #74ACDF;
+    margin-bottom: 26px;
+  }
+  .eyebrow .dot { width: 9px; height: 9px; border-radius: 50%; background: #74ACDF; box-shadow: 0 0 16px rgba(116,172,223,0.8); }
+  .brandrow { display: flex; align-items: center; gap: 28px; margin-bottom: 26px; }
+  .logo {
+    width: 112px; height: 112px; flex-shrink: 0;
+    border-radius: 24px;
+    background: rgba(116,172,223,0.10);
+    border: 1px solid rgba(116,172,223,0.30);
+    display: flex; align-items: center; justify-content: center;
+    color: #74ACDF;
+    box-shadow: 0 0 60px rgba(116,172,223,0.18);
+  }
+  .logo svg { width: 60px; height: 60px; }
+  h1 {
+    font-family: 'Familjen Grotesk', sans-serif;
+    font-size: 108px; font-weight: 700;
+    letter-spacing: -0.035em; line-height: 0.95;
+    color: #E8ECF4;
+  }
+  .subtitle {
+    font-family: 'Familjen Grotesk', sans-serif;
+    font-size: 34px; font-weight: 600;
+    color: #74ACDF; letter-spacing: -0.01em;
+    margin-bottom: 22px;
+  }
+  .divider { width: 96px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, #74ACDF, #F6B40E); margin-bottom: 22px; }
+  .lead {
+    font-size: 27px; line-height: 1.45; color: #8892A8; max-width: 760px; font-weight: 400;
+  }
+  /* Footer */
+  .footer {
+    position: absolute; left: 84px; bottom: 64px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 19px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #505A6E;
+  }
+  .footer b { color: #8892A8; font-weight: 600; }
+  /* Data motif (right) */
+  .bars {
+    position: absolute; right: 84px; bottom: 60px;
+    display: flex; align-items: flex-end; gap: 14px; height: 220px;
+    opacity: 0.9;
+  }
+  .bars span {
+    width: 26px; border-radius: 6px 6px 0 0;
+    background: linear-gradient(180deg, rgba(116,172,223,0.85), rgba(116,172,223,0.15));
+    border: 1px solid rgba(116,172,223,0.35); border-bottom: none;
+  }
+  .bars span.sol { background: linear-gradient(180deg, rgba(246,180,14,0.85), rgba(246,180,14,0.12)); border-color: rgba(246,180,14,0.4); }
+  .badge {
+    position: absolute; right: 84px; top: 80px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #74ACDF;
+    padding: 10px 18px; border-radius: 999px;
+    background: rgba(116,172,223,0.08); border: 1px solid rgba(116,172,223,0.22);
+  }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="vignette"></div>
+  <div class="topbar"></div>
+
+  <div class="badge">🇦🇷 Argentina</div>
+
+  <div class="bars">
+    <span style="height:55%"></span>
+    <span style="height:100%"></span>
+    <span style="height:42%"></span>
+    <span style="height:74%"></span>
+    <span class="sol" style="height:60%"></span>
+    <span style="height:38%"></span>
+  </div>
+
+  <div class="content">
+    <div class="eyebrow"><span class="dot"></span>Datos Abiertos · Congreso</div>
+    <div class="brandrow">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+      </div>
+      <h1>Monitor HCDN</h1>
+    </div>
+    <div class="subtitle">Cámara de Diputados de la Nación Argentina</div>
+    <div class="divider"></div>
+    <div class="lead">Seguimiento y análisis de proyectos parlamentarios, comisiones y bloques. Datos abiertos, en tiempo real.</div>
+  </div>
+
+  <div class="footer"><b>Laboratorio Colossus</b> · Ecosistema OpenArg</div>
+</body>
+</html>

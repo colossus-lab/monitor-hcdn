@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://monitor-hcdn-sand.vercel.app/sitemap.xml
