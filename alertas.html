@@ -6,32 +6,42 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="format-detection" content="telephone=no">
-  <meta name="theme-color" content="#242c4f">
+  <meta name="theme-color" content="#06090F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
   <title>Alertas — Monitor HCDN</title>
   <meta name="description" content="Configurar alertas para recibir notificaciones de nuevos proyectos parlamentarios por palabra clave, tipo, comisión o bloque.">
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('hcdn_theme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch(e) { document.documentElement.setAttribute('data-theme','dark'); }
+    })();
+  </script>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Saltar al contenido</a>
   <div id="nav-container"></div>
-  <main class="main">
+  <main class="main" id="main-content">
     <div class="page-header">
-      <h1>🔔 Alertas de Proyectos</h1>
+      <h1 data-icon="bell">Alertas de Proyectos</h1>
       <p>Configurá alertas para monitorear proyectos que te interesen. Se guardan en tu navegador.</p>
     </div>
 
     <!-- Create Alert -->
     <div class="alert-config">
-      <div class="card-title" style="margin-bottom:var(--sp-md)">➕ Nueva Alerta</div>
+      <div class="card-title" data-icon="plus" style="margin-bottom:var(--sp-md)">Nueva Alerta</div>
       <div class="alert-form" id="alert-form">
         <div style="flex:1;min-width:200px">
-          <label>Palabra clave</label>
+          <label for="alert-keyword">Palabra clave</label>
           <input type="text" id="alert-keyword" placeholder="ej: educación, salud, presupuesto...">
         </div>
         <div>
-          <label>Tipo</label>
+          <label for="alert-tipo">Tipo</label>
           <select id="alert-tipo">
             <option value="">Cualquiera</option>
             <option value="LEY">Ley</option>
@@ -41,15 +51,15 @@
           </select>
         </div>
         <div>
-          <label>Comisión</label>
+          <label for="alert-comision">Comisión</label>
           <select id="alert-comision"><option value="">Cualquiera</option></select>
         </div>
         <div>
-          <label>Bloque</label>
+          <label for="alert-bloque">Bloque</label>
           <select id="alert-bloque"><option value="">Cualquiera</option></select>
         </div>
         <div>
-          <label>&nbsp;</label>
+          <label aria-hidden="true">&nbsp;</label>
           <button class="btn-primary" id="btn-add-alert">Crear Alerta</button>
         </div>
       </div>
@@ -58,7 +68,7 @@
     <!-- Active Alerts -->
     <div class="card" style="margin-bottom:var(--sp-xl)">
       <div class="card-header">
-        <div class="card-title">⚡ Alertas Activas</div>
+        <div class="card-title" data-icon="zap">Alertas Activas</div>
         <div class="card-subtitle" id="alerts-count">—</div>
       </div>
       <div id="active-alerts">
@@ -69,7 +79,7 @@
     <!-- Matching Projects -->
     <div id="matching-section" style="display:none">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-md)">
-        <h2 class="section-title"><span class="emoji">📋</span> Proyectos que Coinciden</h2>
+        <h2 class="section-title" data-icon="list">Proyectos que Coinciden</h2>
         <button class="btn-ghost btn-sm" id="btn-mark-seen">Marcar todos como vistos</button>
       </div>
       <div class="project-list" id="matching-projects"></div>
@@ -81,10 +91,6 @@
   <script src="js/data-loader.js"></script>
   <script src="js/app.js"></script>
   <script>
-    document.getElementById('nav-container').innerHTML = App.navHTML();
-    document.getElementById('footer-container').innerHTML = App.footerHTML();
-    App.initNav();
-
     const MATCH_PAGE_SIZE = 30;
     let matchPage = 1;
     let matchedProjects = [];
@@ -183,16 +189,16 @@
       document.getElementById('matching-projects').innerHTML = page.map(p => {
         const isNew = p.fecha > lastSeen;
         return `
-        <div class="project-item" onclick="App.goToProject('${p.id}')" style="${isNew ? 'border-left:3px solid var(--hcdn-accent);' : ''}">
+        <div class="project-item" onclick="App.goToProject('${p.id}')" style="${isNew ? 'box-shadow:inset 3px 0 0 var(--celeste);' : ''}">
           <span class="badge ${App.badgeClass(p.tipo)}">${p.tipo}</span>
           <div>
             <div class="project-title">
-              ${isNew ? '<span style="color:var(--hcdn-accent);font-size:10px;font-weight:700;margin-right:6px">NUEVO</span>' : ''}
+              ${isNew ? '<span style="color:var(--celeste);font-size:10px;font-weight:700;margin-right:6px">NUEVO</span>' : ''}
               ${p.t}
             </div>
             <div class="project-meta">
-              <span>👤 ${App.titleCase(p.autor)}</span>
-              ${p.com ? `<span>📁 ${App.titleCase(p.com)}</span>` : ''}
+              <span>${App.icon('user')} ${App.titleCase(p.autor)}</span>
+              ${p.com ? `<span>${App.icon('folder')} ${App.titleCase(p.com)}</span>` : ''}
             </div>
           </div>
           <div class="project-date">${App.formatDate(p.fecha)}</div>
@@ -267,6 +273,7 @@
 
     // Init
     (async () => {
+      await App.initGlobals();
       await populateDropdowns();
       renderAlerts();
     })();

@@ -3,16 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#06090F">
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('hcdn_theme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch(e) { document.documentElement.setAttribute('data-theme','dark'); }
+    })();
+  </script>
   <title>Monitor HCDN - Selección de Período</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&family=Roboto+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
-  
+
   <link rel="stylesheet" href="css/styles.css">
   <style>
     body {
-      background-color: var(--bg-body);
+      background-color: var(--bg-primary);
       display: flex;
       flex-direction: column;
       min-height: 100vh;
@@ -20,36 +26,63 @@
       justify-content: center;
       padding: 20px;
     }
-    
+
     .landing-card {
-      background: var(--surface-1);
-      border: 1px solid var(--border);
-      border-radius: 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-xl);
       padding: 48px;
-      max-width: 600px;
+      max-width: 620px;
       width: 100%;
       text-align: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      box-shadow: var(--shadow-lg);
       animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .landing-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--celeste), var(--sol));
     }
 
     .landing-logo {
-      font-size: 64px;
-      margin-bottom: 24px;
-      display: block;
+      width: 64px; height: 64px;
+      margin: 0 auto 24px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-lg);
+      background: rgba(116,172,223,0.10);
+      border: 1px solid var(--border-hover);
+      color: var(--celeste);
+    }
+    .landing-logo svg { width: 34px; height: 34px; }
+
+    .landing-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 500;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--celeste);
+      margin-bottom: 14px;
+    }
+    .landing-eyebrow::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--celeste);
     }
 
     .landing-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 36px;
+      font-family: var(--font-display);
+      font-size: 38px;
       font-weight: 700;
-      color: var(--text-strong);
+      color: var(--text-primary);
       margin-bottom: 12px;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.03em;
     }
 
     .landing-desc {
-      color: var(--text-muted);
+      color: var(--text-secondary);
       font-size: 16px;
       line-height: 1.6;
       margin-bottom: 40px;
@@ -62,51 +95,83 @@
     }
 
     .period-btn {
-      background: var(--surface-2);
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
+      background: rgba(136,146,168,0.05);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 22px;
       cursor: pointer;
-       transition: all 0.2s ease;
+      transition: border-color 0.25s, background 0.2s, transform 0.2s, box-shadow 0.3s;
       text-align: left;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 8px;
+      gap: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .period-btn::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--celeste-muted), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
     }
 
     .period-btn:hover {
-      border-color: var(--text-accent);
-      background: rgba(59, 130, 246, 0.05);
+      border-color: var(--border-hover);
+      background: rgba(116,172,223,0.06);
       transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      box-shadow: var(--shadow-md);
     }
+    .period-btn:hover::before { opacity: 1; }
 
     .period-btn .year {
-      font-size: 28px;
+      font-size: 30px;
       font-weight: 700;
-      color: var(--text-strong);
-      font-family: 'Outfit', sans-serif;
+      color: var(--celeste);
+      font-family: var(--font-mono);
+      letter-spacing: -0.02em;
     }
 
     .period-btn .label {
-      font-size: 14px;
-      color: var(--text-muted);
+      font-size: 13px;
+      color: var(--text-secondary);
     }
+
+    .period-btn .enter {
+      margin-top: 6px;
+      font-family: var(--font-display);
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--text-muted);
+      display: inline-flex; align-items: center; gap: 4px;
+      transition: color 0.2s, gap 0.2s;
+    }
+    .period-btn:hover .enter { color: var(--celeste); gap: 8px; }
 
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 540px) {
+      .landing-card { padding: 32px 22px; }
+      .landing-title { font-size: 30px; }
     }
   </style>
 </head>
 <body>
 
   <div class="landing-card">
-    <span class="landing-logo">🏛️</span>
+    <span class="landing-logo" role="img" aria-label="Monitor HCDN">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+    </span>
+    <span class="landing-eyebrow">Datos Abiertos · Congreso</span>
     <h1 class="landing-title">Monitor HCDN</h1>
     <p class="landing-desc">Plataforma analítica y visualizador de datos abiertos operativos de la Honorable Cámara de Diputados de la Nación. Seleccione un período legislativo para ingresar.</p>
-    
+
     <div class="period-grid" id="landing-periods">
       <!-- Injected by JS -->
     </div>
@@ -119,9 +184,9 @@
       await DataLoader.init();
       const periods = DataLoader.periods || [];
       const grid = document.getElementById('landing-periods');
-      
+
       if (periods.length === 0) {
-        grid.innerHTML = '<p style="color:var(--text-muted);grid-column:1/-1">No hay períodos disponibles en los datos.</p>';
+        grid.innerHTML = '<p style="color:var(--text-secondary);grid-column:1/-1">No hay períodos disponibles en los datos.</p>';
         return;
       }
 
@@ -132,6 +197,7 @@
         btn.innerHTML = `
           <span class="year">${p.year}</span>
           <span class="label">Período Legislativo ${p.periodo}</span>
+          <span class="enter">Ingresar →</span>
         `;
         btn.onclick = () => {
           DataLoader.setActivePeriod(p.year);

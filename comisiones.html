@@ -6,18 +6,28 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="format-detection" content="telephone=no">
-  <meta name="theme-color" content="#242c4f">
+  <meta name="theme-color" content="#06090F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
   <title>Comisiones — Monitor HCDN</title>
   <meta name="description" content="Comisiones de la Cámara de Diputados: ranking por cantidad de proyectos, integrantes y distribución temática.">
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('hcdn_theme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch(e) { document.documentElement.setAttribute('data-theme','dark'); }
+    })();
+  </script>
   <link rel="stylesheet" href="css/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Saltar al contenido</a>
   <div id="nav-container"></div>
-  <main class="main">
+  <main class="main" id="main-content">
     <div class="page-header">
       <h1>Comisiones Parlamentarias</h1>
       <p>Comisiones con giros de proyectos — <span id="header-period-label">Período Seleccionado</span></p>
@@ -31,24 +41,24 @@
       <div class="grid-2" style="margin-bottom:var(--sp-xl)">
         <div class="card animate-in">
           <div class="card-header">
-            <div class="card-title">🏆 Ranking de Comisiones</div>
+            <div class="card-title" data-icon="trophy">Ranking de Comisiones</div>
             <div class="card-subtitle" id="com-count">—</div>
           </div>
           <div class="chart-container">
-            <canvas id="chart-comisiones" height="500"></canvas>
+            <canvas id="chart-comisiones" height="500" role="img" aria-label="Ranking de comisiones por cantidad de proyectos"></canvas>
           </div>
         </div>
         <div class="card animate-in">
           <div class="card-header">
-            <div class="card-title">📊 Distribución por Tipo</div>
+            <div class="card-title" data-icon="pie">Distribución por Tipo</div>
           </div>
           <div class="chart-container">
-            <canvas id="chart-com-tipos" height="500"></canvas>
+            <canvas id="chart-com-tipos" height="500" role="img" aria-label="Distribución de tipos de proyecto por comisión"></canvas>
           </div>
         </div>
       </div>
 
-      <div class="section-title"><span class="emoji">📋</span> Todas las Comisiones</div>
+      <div class="section-title" data-icon="list">Todas las Comisiones</div>
       <div class="ranking-list" id="all-comisiones"></div>
     </div>
   </main>
@@ -80,7 +90,7 @@
         <a href="comisiones.html" class="back-link">← Volver a comisiones</a>
         <div class="detail-header">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-            <span class="badge" style="background:var(--hcdn-gold-soft);color:var(--hcdn-gold)">${com?.tipo === 'P' ? 'PERMANENTE' : com?.tipo === 'E' ? 'ESPECIAL' : com?.tipo || 'COMISIÓN'}</span>
+            <span class="badge" style="background:var(--hcdn-gold-light);color:var(--hcdn-gold)">${com?.tipo === 'P' ? 'PERMANENTE' : com?.tipo === 'E' ? 'ESPECIAL' : com?.tipo || 'COMISIÓN'}</span>
           </div>
           <h1>${App.titleCase(comName)}</h1>
           <div class="detail-meta">
@@ -96,7 +106,7 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-md)">
-          <h2 class="section-title"><span class="emoji">📋</span> Proyectos en esta Comisión</h2>
+          <h2 class="section-title">${App.icon('list')} Proyectos en esta Comisión</h2>
         </div>
         <div class="project-list">
           ${comProjects.slice(0, 100).map(p => `
@@ -105,8 +115,8 @@
               <div>
                 <div class="project-title">${p.t}</div>
                 <div class="project-meta">
-                  <span>👤 ${App.titleCase(p.autor)}</span>
-                  <span>📄 ${p.exp || p.id}</span>
+                  <span>${App.icon('user')} ${App.titleCase(p.autor)}</span>
+                  <span>${App.icon('file')} ${p.exp || p.id}</span>
                 </div>
               </div>
               <div class="project-date">${App.formatDate(p.fecha)}</div>
@@ -136,18 +146,30 @@
         return;
       }
 
+      App.applyChartDefaults();
+
       const comisiones = await DataLoader.loadComisiones();
+      if (!comisiones) {
+        document.getElementById('com-count').textContent = '—';
+        const chartGrid = document.querySelector('.grid-2');
+        if (chartGrid) chartGrid.style.display = 'none';
+        App.emptyState('#all-comisiones', {
+          icon: 'error', isError: true,
+          title: 'No se pudieron cargar las comisiones',
+          message: `No encontramos datos para el período ${DataLoader.getActivePeriod()}.`,
+          actionLabel: 'Cambiar período', actionHref: 'index.html'
+        });
+        return;
+      }
+
       // Permanent comisiones ('P') are always active, plus any others with projects
       const active = comisiones.filter(c => c.proyectos > 0 || c.tipo === 'P');
 
       if (active.length === 0) {
         document.getElementById('com-count').textContent = '0 comisiones listadas';
-        document.getElementById('all-comisiones').innerHTML = '<div class="empty-state"><div class="emoji">📁</div><p>No hay comisiones con proyectos en este período</p></div>';
-        
-        // Hide charts securely by hiding their grid containers
+        App.emptyState('#all-comisiones', { icon: 'folder', title: 'Sin comisiones activas', message: 'No hay comisiones con proyectos en este período.' });
         const chartGrid = document.querySelector('.grid-2');
         if (chartGrid) chartGrid.style.display = 'none';
-        
         return;
       }
 
@@ -155,18 +177,17 @@
 
       const totalComisionProjects = active.reduce((acc, c) => acc + c.proyectos, 0);
 
-      if (totalComisionProjects === 0) {
-        document.querySelector('.grid-2').innerHTML = `
-          <div class="chart-card animate-in" style="grid-column: 1 / -1; text-align: center; padding: 60px 20px;">
-            <div class="emoji" style="font-size: 48px; margin-bottom: 16px;">📊</div>
-            <h2 style="color: var(--text-base); margin-bottom: 8px;">Aún no hay estadísticas disponibles</h2>
-            <p style="color: var(--text-muted);">No se han girado proyectos a las comisiones en lo que va del período.</p>
-          </div>
-        `;
-      } else {
-        // Horizontal bar chart - top 15
+      let COM_CHARTS = {};
+      function renderComCharts() {
+        if (totalComisionProjects === 0) {
+          App.emptyState('.grid-2', { icon: 'pie', title: 'Aún no hay estadísticas disponibles', message: 'No se han girado proyectos a las comisiones en lo que va del período.' });
+          return;
+        }
+        const t = App.chartTheme();
+
         const top15 = active.slice(0, 15);
-        new Chart(document.getElementById('chart-comisiones'), {
+        if (COM_CHARTS.bar) COM_CHARTS.bar.destroy();
+        COM_CHARTS.bar = new Chart(document.getElementById('chart-comisiones'), {
           type: 'bar',
           data: {
             labels: top15.map(c => {
@@ -175,58 +196,49 @@
             }),
             datasets: [{
               data: top15.map(c => c.proyectos),
-              backgroundColor: 'rgba(59,130,246,0.25)',
-              borderColor: '#3b82f6',
-              borderWidth: 1, borderRadius: 4,
-              hoverBackgroundColor: 'rgba(59,130,246,0.5)',
+              backgroundColor: t.celeste + '40', borderColor: t.celeste,
+              borderWidth: 1, borderRadius: 4, hoverBackgroundColor: t.celeste + '70',
             }]
           },
           options: {
-            indexAxis: 'y',
-            responsive: true, maintainAspectRatio: false,
-            onClick: (e, els) => {
-              if (els.length) {
-                const idx = els[0].index;
-                App.goToComision(top15[idx].nombre);
-              }
-            },
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            onClick: (e, els) => { if (els.length) App.goToComision(top15[els[0].index].nombre); },
             plugins: { legend: { display: false } },
             scales: {
-              x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#556a8a' } },
-              y: { grid: { display: false }, ticks: { color: '#8899b4', font: { size: 11 } } }
+              x: { grid: { color: t.grid }, ticks: { color: t.text } },
+              y: { grid: { display: false }, ticks: { color: t.text, font: { size: 11 } } }
             }
           }
         });
 
-        // Stacked bar by type
         const topForTypes = active.slice(0, 10);
         const tipoKeys = ['LEY', 'RESOLUCION', 'DECLARACION'];
-        const tipoColors = { LEY: '#3b82f6', RESOLUCION: '#8b5cf6', DECLARACION: '#10b981' };
-        new Chart(document.getElementById('chart-com-tipos'), {
+        const tipoColors = { LEY: t.celeste, RESOLUCION: '#A78BFA', DECLARACION: '#34D399' };
+        if (COM_CHARTS.stack) COM_CHARTS.stack.destroy();
+        COM_CHARTS.stack = new Chart(document.getElementById('chart-com-tipos'), {
           type: 'bar',
           data: {
             labels: topForTypes.map(c => App.titleCase(c.nombre).substring(0, 20)),
-            datasets: tipoKeys.map(t => ({
-              label: App.titleCase(t),
-              data: topForTypes.map(c => c.tipos[t] || 0),
-              backgroundColor: tipoColors[t] + '44',
-              borderColor: tipoColors[t],
+            datasets: tipoKeys.map(k => ({
+              label: App.titleCase(k),
+              data: topForTypes.map(c => c.tipos[k] || 0),
+              backgroundColor: tipoColors[k] + '55',
+              borderColor: tipoColors[k],
               borderWidth: 1,
             }))
           },
           options: {
-            indexAxis: 'y',
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'top', labels: { color: '#8899b4', usePointStyle: true, pointStyleWidth: 8, font: { size: 11 } } }
-            },
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { color: t.text, usePointStyle: true, pointStyleWidth: 8, font: { size: 11 } } } },
             scales: {
-              x: { stacked: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#556a8a' } },
-              y: { stacked: true, grid: { display: false }, ticks: { color: '#8899b4', font: { size: 11 } } }
+              x: { stacked: true, grid: { color: t.grid }, ticks: { color: t.text } },
+              y: { stacked: true, grid: { display: false }, ticks: { color: t.text, font: { size: 11 } } }
             }
           }
         });
       }
+      renderComCharts();
+      App.onThemeRenderCharts(renderComCharts);
 
       // Full list
       const maxProj = active[0]?.proyectos || 1;
